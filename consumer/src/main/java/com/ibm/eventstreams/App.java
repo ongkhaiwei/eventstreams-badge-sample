@@ -19,16 +19,14 @@
  */
 package com.ibm.eventstreams;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.kafka.clients.CommonClientConfigs;
-import org.apache.kafka.clients.consumer.Consumer;
-import org.apache.kafka.clients.consumer.ConsumerConfig;
-import org.apache.kafka.clients.consumer.ConsumerRebalanceListener;
-import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.clients.consumer.*;
 import org.apache.kafka.common.TopicPartition;
 import org.apache.kafka.common.config.SaslConfigs;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -55,11 +53,30 @@ public class App {
                 @Override
                 public void onPartitionsAssigned(Collection<TopicPartition> partitions) {
                     // TODO Move position to beginning of partition
+
+                    for(TopicPartition partition: partitions) {
+                        consumer.seek(partition, 0);
+                    }
+
                 }
             });
             // TODO: Add consumer poll loop
-            // TODO: Find the record whose key is equal to KEY ("coding-challenge")
-            // TODO: Print the record value to discover the secret message
+
+            while (true) {
+                ConsumerRecords<String, String> consumerRecords = consumer.poll(Duration.ofMillis(200));
+
+                consumerRecords.forEach(record -> {
+
+                    // TODO: Find the record whose key is equal to KEY ("coding-challenge")
+
+                    if(record.key().equals(KEY))
+
+                        // TODO: Print the record value to discover the secret message
+
+                        System.out.printf("Secret Message: %s\n", record.value());
+                });
+                consumer.commitAsync();
+            }
         }
     }
 
@@ -75,6 +92,8 @@ public class App {
         configs.put(SaslConfigs.SASL_JAAS_CONFIG, "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"token\" password=\"" + apikey + "\";");
         configs.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
         configs.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class.getName());
+        // TODO: MISSING IN TUTORIAL INSTRUCTION
+        configs.put(ConsumerConfig.GROUP_ID_CONFIG,KEY);
         return configs;
     }
 }
